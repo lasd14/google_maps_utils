@@ -15,23 +15,24 @@ import 'dart:math';
 /// limitations under the License.
 import 'package:google_maps_utils/google_maps_utils.dart';
 import 'package:google_maps_utils/utils/stack.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PolyUtils {
   PolyUtils._();
 
   /// Checks if [point] is inside [polygon]
-  static bool containsLocationPoly(Point point, List<Point> polygon) {
+  static bool containsLocationPoly(LatLng point, List<LatLng> polygon) {
     num ax = 0;
     num ay = 0;
-    num bx = polygon[polygon.length - 1].x - point.x;
-    num by = polygon[polygon.length - 1].y - point.y;
+    num bx = polygon[polygon.length - 1].latitude - point.latitude;
+    num by = polygon[polygon.length - 1].longitude - point.longitude;
     int depth = 0;
 
     for (int i = 0; i < polygon.length; i++) {
       ax = bx;
       ay = by;
-      bx = polygon[i].x - point.x;
-      by = polygon[i].y - point.y;
+      bx = polygon[i].latitude - point.latitude;
+      by = polygon[i].longitude - point.longitude;
 
       if (ay < 0 && by < 0) continue; // both "up" or both "down"
       if (ay > 0 && by > 0) continue; // both "up" or both "down"
@@ -54,14 +55,14 @@ class PolyUtils {
   /// closing segment between the first point and the last point is included.
 
   static bool isLocationOnEdgeTolerance(
-          Point point, List<Point> polygon, bool geodesic, double tolerance) =>
+          LatLng point, List<LatLng> polygon, bool geodesic, double tolerance) =>
       _isLocationOnEdgeOrPath(point, polygon, true, geodesic, tolerance);
 
   /// Same as {@link #isLocationOnEdge(Point, List, bool, double)}
   /// with a default tolerance of 0.1 meters.
 
   static bool isLocationOnEdge(
-          Point point, List<Point> polygon, bool geodesic) =>
+          LatLng point, List<LatLng> polygon, bool geodesic) =>
       isLocationOnEdgeTolerance(point, polygon, geodesic, _defaultTolerance);
 
   /// Computes whether the given point lies on or near a polyline, within a specified
@@ -70,7 +71,7 @@ class PolyUtils {
   /// segment between the first point and the last point is not included.
 
   static bool isLocationOnPathTolerance(
-          Point point, List<Point> polyline, bool geodesic, double tolerance) =>
+          LatLng point, List<LatLng> polyline, bool geodesic, double tolerance) =>
       _isLocationOnEdgeOrPath(point, polyline, false, geodesic, tolerance);
 
   /// Same as {@link #isLocationOnPath(Point, List, bool, double)}
@@ -78,10 +79,10 @@ class PolyUtils {
   /// with a default tolerance of 0.1 meters.
 
   static bool isLocationOnPath(
-          Point point, List<Point> polyline, bool geodesic) =>
+          LatLng point, List<LatLng> polyline, bool geodesic) =>
       isLocationOnPathTolerance(point, polyline, geodesic, _defaultTolerance);
 
-  static bool _isLocationOnEdgeOrPath(Point point, List<Point> poly,
+  static bool _isLocationOnEdgeOrPath(LatLng point, List<LatLng> poly,
           bool closed, bool geodesic, double toleranceEarth) =>
       locationIndexOnEdgeOrPath(
           point, poly, closed, geodesic, toleranceEarth) >=
@@ -107,14 +108,14 @@ class PolyUtils {
   ///
   /// poly.size()-2 if between poly[poly.size() - 2] and poly[poly.size() - 1]
   static int locationIndexOnPathTolerance(
-          Point point, List<Point> poly, bool geodesic, double tolerance) =>
+          LatLng point, List<LatLng> poly, bool geodesic, double tolerance) =>
       locationIndexOnEdgeOrPath(point, poly, false, geodesic, tolerance);
 
   /// Same as {@link #locationIndexOnPath(Point, List, bool, double)}
   /// <p>
   /// with a default tolerance of 0.1 meters.
   static int locationIndexOnPath(
-          Point point, List<Point> polyline, bool geodesic) =>
+          LatLng point, List<LatLng> polyline, bool geodesic) =>
       locationIndexOnPathTolerance(
           point, polyline, geodesic, _defaultTolerance);
 
@@ -139,7 +140,7 @@ class PolyUtils {
   /// 1 if between poly[1] and poly[2],
   ///
   /// poly.size()-2 if between poly[poly.size() - 2] and poly[poly.size() - 1]
-  static int locationIndexOnEdgeOrPath(Point point, List<Point> poly,
+  static int locationIndexOnEdgeOrPath(LatLng point, List<LatLng> poly,
       bool closed, bool geodesic, double toleranceEarth) {
     int size = poly.length;
     if (size == 0) {
@@ -148,16 +149,16 @@ class PolyUtils {
 
     double tolerance = toleranceEarth / MathUtils.earthRadius;
     double havTolerance = MathUtils.hav(tolerance);
-    double lat3 = SphericalUtils.toRadians(point.x).toDouble();
-    double lng3 = SphericalUtils.toRadians(point.y).toDouble();
-    Point prev = poly[closed ? size - 1 : 0];
-    double lat1 = SphericalUtils.toRadians(prev.x).toDouble();
-    double lng1 = SphericalUtils.toRadians(prev.y).toDouble();
+    double lat3 = SphericalUtils.toRadians(point.latitude).toDouble();
+    double lng3 = SphericalUtils.toRadians(point.longitude).toDouble();
+    LatLng prev = poly[closed ? size - 1 : 0];
+    double lat1 = SphericalUtils.toRadians(prev.latitude).toDouble();
+    double lng1 = SphericalUtils.toRadians(prev.longitude).toDouble();
     int idx = 0;
     if (geodesic) {
       for (final point2 in poly) {
-        double lat2 = SphericalUtils.toRadians(point2.x).toDouble();
-        double lng2 = SphericalUtils.toRadians(point2.y).toDouble();
+        double lat2 = SphericalUtils.toRadians(point2.latitude).toDouble();
+        double lng2 = SphericalUtils.toRadians(point2.longitude).toDouble();
         if (_isOnSegmentGC(lat1, lng1, lat2, lng2, lat3, lng3, havTolerance)) {
           return max(0, idx - 1);
         }
@@ -177,9 +178,9 @@ class PolyUtils {
       double y3 = MathUtils.mercator(lat3);
       List<double> xTry = List.generate(3, (index) => 0);
       for (final point2 in poly) {
-        double lat2 = SphericalUtils.toRadians(point2.x).toDouble();
+        double lat2 = SphericalUtils.toRadians(point2.latitude).toDouble();
         double y2 = MathUtils.mercator(lat2);
-        double lng2 = SphericalUtils.toRadians(point2.y).toDouble();
+        double lng2 = SphericalUtils.toRadians(point2.longitude).toDouble();
         if (max(lat1, lat2) >= minAcceptable &&
             min(lat1, lat2) <= maxAcceptable) {
           // We offset ys by -lng1; the implicit x1 is 0.

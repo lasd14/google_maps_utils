@@ -1,3 +1,3 @@
-import '../example/example.dart' as example;
+// import '../example/example.dart' as example;
 
-main(List<String> args) => example.main();
+// // main(List<String> args) => example.main();
