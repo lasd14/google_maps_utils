@@ -85,8 +85,7 @@ class PolyUtils {
   static bool _isLocationOnEdgeOrPath(LatLng point, List<LatLng> poly,
           bool closed, bool geodesic, double toleranceEarth) =>
       locationIndexOnEdgeOrPath(
-          point, poly, closed, geodesic, toleranceEarth) >=
-      0;
+          point, poly, closed, geodesic, toleranceEarth);
 
   /// Computes whether (and where) a given point lies on or near a polyline, within a specified tolerance.
   /// The polyline is not closed -- the closing segment between the first point and the last point is not included.
@@ -107,14 +106,14 @@ class PolyUtils {
   /// 1 if between poly[1] and poly[2],
   ///
   /// poly.size()-2 if between poly[poly.size() - 2] and poly[poly.size() - 1]
-  static int locationIndexOnPathTolerance(
+  static bool locationIndexOnPathTolerance(
           LatLng point, List<LatLng> poly, bool geodesic, double tolerance) =>
       locationIndexOnEdgeOrPath(point, poly, false, geodesic, tolerance);
 
   /// Same as {@link #locationIndexOnPath(Point, List, bool, double)}
   /// <p>
   /// with a default tolerance of 0.1 meters.
-  static int locationIndexOnPath(
+  static bool locationIndexOnPath(
           LatLng point, List<LatLng> polyline, bool geodesic) =>
       locationIndexOnPathTolerance(
           point, polyline, geodesic, _defaultTolerance);
@@ -140,11 +139,11 @@ class PolyUtils {
   /// 1 if between poly[1] and poly[2],
   ///
   /// poly.size()-2 if between poly[poly.size() - 2] and poly[poly.size() - 1]
-  static int locationIndexOnEdgeOrPath(LatLng point, List<LatLng> poly,
+  static bool locationIndexOnEdgeOrPath(LatLng point, List<LatLng> poly,
       bool closed, bool geodesic, double toleranceEarth) {
     int size = poly.length;
     if (size == 0) {
-      return -1;
+      return false;
     }
 
     double tolerance = toleranceEarth / MathUtils.earthRadius;
@@ -160,7 +159,7 @@ class PolyUtils {
         double lat2 = SphericalUtils.toRadians(point2.latitude).toDouble();
         double lng2 = SphericalUtils.toRadians(point2.longitude).toDouble();
         if (_isOnSegmentGC(lat1, lng1, lat2, lng2, lat3, lng3, havTolerance)) {
-          return max(0, idx - 1);
+          return true;
         }
         lat1 = lat2;
         lng1 = lng2;
@@ -202,7 +201,7 @@ class PolyUtils {
             double havDist =
                 MathUtils.havDistance(lat3, latClosest, x3 - xClosest);
 
-            if (havDist < havTolerance) return max(0, idx - 1);
+            if (havDist < havTolerance) return true;
           }
         }
         lat1 = lat2;
@@ -211,7 +210,7 @@ class PolyUtils {
         idx++;
       }
     }
-    return -1;
+    return false;
   }
 
   /// Returns sin(initial bearing from (lat1,lng1) to (lat3,lng3) minus initial bearing
